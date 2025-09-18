@@ -141,17 +141,27 @@ def get_or_create_agent(agent_name: str, api_key: str, model: str) -> Agent:
     agent_key = f"{agent_name}_{model}"
     
     if agent_key not in st.session_state.agents:
-        agent = Agent(
-            api_key=api_key,
+        from core.agent import AgentConfig
+        config = AgentConfig(
             model=model,
-            name=agent_name,
-            description=f"Demo agent: {agent_name}"
+            system_prompt=f"You are {agent_name}, a helpful AI assistant. {f'Demo agent: {agent_name}'}"
+        )
+        agent = Agent(
+            config=config,
+            api_key=api_key
         )
         
         # Add demo tools
-        demo_tools = create_demo_tools()
-        for tool in demo_tools:
-            agent.tools.register(tool)
+        demo_functions = create_demo_tools()
+        for func in demo_functions:
+            if hasattr(func, '_is_tool'):
+                from core.tools import Tool
+                tool = Tool.from_function(
+                    func,
+                    getattr(func, '_tool_name', func.__name__),
+                    getattr(func, '_tool_description', func.__doc__)
+                )
+                agent.tool_registry.register(tool)
         
         st.session_state.agents[agent_key] = agent
     
@@ -183,9 +193,9 @@ def main():
     # Model selection
     model = st.sidebar.selectbox(
         "Model",
-        ["gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo"],
+        ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-4o", "gpt-4", "gpt-4-turbo-preview"],
         index=0,
-        help="Select the OpenAI model to use"
+        help="Select the OpenAI model to use (gpt-4o-mini is cheapest - 60% cheaper than gpt-3.5-turbo)"
     )
     
     # Demo mode selection
@@ -245,7 +255,8 @@ def interactive_chat_demo(api_key: str, model: str):
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
-                    response = asyncio.run(agent.chat(prompt))
+                    # Call synchronous chat method directly
+                    response = agent.chat(prompt)
                     st.write(response)
                     st.session_state.chat_messages.append({"role": "assistant", "content": response})
                 except Exception as e:
@@ -318,7 +329,8 @@ def run_function_example(agent: Agent, prompt: str):
     """Run a function calling example"""
     with st.spinner("Executing..."):
         try:
-            response = asyncio.run(agent.chat(prompt))
+            # Call synchronous chat method directly
+            response = agent.chat(prompt)
             st.success(f"**Request:** {prompt}")
             st.info(f"**Response:** {response}")
         except Exception as e:
@@ -391,7 +403,13 @@ def run_streaming_example(agent: Agent, prompt: str):
             # Final response without cursor
             response_placeholder.info(f"**Final Response:**\n\n{full_response}")
         
-        asyncio.run(stream_response())
+        # Use asyncio.get_event_loop() instead of asyncio.run() for Streamlit compatibility
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(stream_response())
+        finally:
+            loop.close()
         
     except Exception as e:
         st.error(f"Streaming error: {str(e)}")
@@ -463,7 +481,8 @@ def run_memory_example(agent: Agent, prompt: str, session_id: str):
     """Run a memory example"""
     with st.spinner("Processing with memory..."):
         try:
-            response = asyncio.run(agent.chat(prompt, session_id))
+            # Call synchronous chat method directly
+            response = agent.chat(prompt, session_id)
             st.success(f"**Session:** {session_id}")
             st.success(f"**Request:** {prompt}")
             st.info(f"**Response:** {response}")
@@ -564,14 +583,16 @@ def run_multi_agent_example(agents: list, task: str, subtasks: list):
     results = []
     
     for i, (agent, subtask) in enumerate(zip(agents, subtasks)):
-        with st.spinner(f"Agent {i+1} ({agent.name}) working on: {subtask}"):
+        agent_name = f"Agent {i+1}"
+        with st.spinner(f"{agent_name} working on: {subtask}"):
             try:
                 # Create specific prompt for each agent
                 prompt = f"Task: {task}\n\nYour role: {subtask}\n\nProvide your perspective and recommendations."
-                response = asyncio.run(agent.chat(prompt))
-                results.append((agent.name, subtask, response))
+                # Call synchronous chat method directly
+                response = agent.chat(prompt)
+                results.append((agent_name, subtask, response))
             except Exception as e:
-                results.append((agent.name, subtask, f"Error: {str(e)}"))
+                results.append((agent_name, subtask, f"Error: {str(e)}"))
     
     # Display results
     st.subheader("🤝 Collaboration Results")
@@ -594,7 +615,8 @@ def run_multi_agent_example(agents: list, task: str, subtasks: list):
                 Please synthesize these perspectives into a comprehensive solution or plan.
                 """
                 
-                synthesis = asyncio.run(agents[0].chat(synthesis_prompt))
+                # Call synchronous chat method directly
+                synthesis = agents[0].chat(synthesis_prompt)
                 
                 st.subheader("🎯 Synthesized Solution")
                 st.info(synthesis)

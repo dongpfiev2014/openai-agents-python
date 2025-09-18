@@ -171,13 +171,15 @@ def clean_filename(filename: str) -> str:
 
 
 def get_available_models() -> list:
-    """Get list of available OpenAI models"""
+    """Get list of available OpenAI models (sorted by cost-effectiveness)"""
     return [
-        "gpt-4",
-        "gpt-4-turbo",
-        "gpt-4-turbo-preview",
-        "gpt-3.5-turbo",
-        "gpt-3.5-turbo-16k"
+        "gpt-4o-mini",          # Cheapest - 60% cheaper than gpt-3.5-turbo
+        "gpt-3.5-turbo",        # Cost-effective baseline
+        "gpt-3.5-turbo-16k",    # Good for longer contexts
+        "gpt-4o",               # Advanced multimodal, faster than GPT-4
+        "gpt-4",                # Higher quality but expensive
+        "gpt-4-turbo",          # Latest GPT-4 variant
+        "gpt-4-turbo-preview"   # Preview version
     ]
 
 

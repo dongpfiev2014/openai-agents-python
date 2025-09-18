@@ -95,7 +95,7 @@ def send_notification(message: str, notification_type: str = "info", recipient: 
 class FunctionCallingExample:
     """Demonstrates function calling capabilities with OpenAI Agent"""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
         # Load configuration
         config_data = load_config()
         

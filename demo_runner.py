@@ -22,7 +22,7 @@ from examples.multi_agent import MultiAgentExample
 class DemoRunner:
     """Main demo runner for all OpenAI Agents SDK examples"""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
         # Load configuration
         config_data = load_config()
         
@@ -343,8 +343,8 @@ Examples:
     
     parser.add_argument(
         '--model', 
-        default='gpt-4',
-        help='OpenAI model to use (default: gpt-4)'
+        default='gpt-4o-mini',
+        help='OpenAI model to use (default: gpt-4o-mini - cheapest option)'
     )
     
     parser.add_argument(

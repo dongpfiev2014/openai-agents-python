@@ -11,7 +11,7 @@ from core.utils import load_config, setup_logging
 class BasicChatExample:
     """Demonstrates basic chat functionality with OpenAI Agent"""
     
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
         # Load configuration
         config_data = load_config()
         

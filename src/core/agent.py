@@ -183,9 +183,15 @@ class Agent:
                     )
                 
                 # Execute tools synchronously (convert async to sync)
-                tool_results = asyncio.run(self._execute_tool_calls(
-                    [tc.model_dump() for tc in message_obj.tool_calls]
-                ))
+                # Use event loop creation instead of asyncio.run() for Streamlit compatibility
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    tool_results = loop.run_until_complete(self._execute_tool_calls(
+                        [tc.model_dump() for tc in message_obj.tool_calls]
+                    ))
+                finally:
+                    loop.close()
                 
                 # Add tool results to memory
                 if self.memory:
@@ -221,7 +227,11 @@ class Agent:
             
         except Exception as e:
             self.logger.error(f"Error in chat: {e}")
-            return f"Error: {str(e)}"
+            # Ensure we always return a string, never a coroutine
+            error_msg = str(e)
+            if "asyncio.Future" in error_msg or "coroutine" in error_msg:
+                error_msg = "API connection error. Please check your API key and try again."
+            return f"Error: {error_msg}"
     
     async def chat_async(self, message: str, conversation_id: Optional[str] = None) -> str:
         """Asynchronous chat with the agent"""
@@ -299,7 +309,11 @@ class Agent:
             
         except Exception as e:
             self.logger.error(f"Error in async chat: {e}")
-            return f"Error: {str(e)}"
+            # Ensure we always return a string, never a coroutine
+            error_msg = str(e)
+            if "asyncio.Future" in error_msg or "coroutine" in error_msg:
+                error_msg = "API connection error. Please check your API key and try again."
+            return f"Error: {error_msg}"
     
     async def chat_stream(self, message: str, conversation_id: Optional[str] = None) -> AsyncGenerator[str, None]:
         """Stream chat responses from the agent"""
